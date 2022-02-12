@@ -3,6 +3,7 @@ import { Readability } from "@mozilla/readability";
 import axios from "axios";
 import readingTime from "reading-time";
 import { JSDOM } from "jsdom";
+import { SunriseResponse } from "./types/sunriseTypes";
 
 const moment = require("moment-timezone");
 
@@ -18,29 +19,27 @@ export const sunriseFunction = async (
   bot: Telegraf<ContextMessageUpdate>,
   ids: number[]
 ) => {
-  const sunriseResponse = await axios
-    .get(
-      `http://dataservice.accuweather.com/forecasts/v1/daily/5day/204843?apikey=euAOzlo4f6QvNgEBzf4dMhLN7cQNTiow&details=true&metric=true`
-    )
-    .catch((err) => {
-      console.error(err);
-      console.log("weather call failed");
-    });
+  try {
+    const sunriseResponse = (
+      await axios.get<SunriseResponse>(
+        `http://dataservice.accuweather.com/forecasts/v1/daily/5day/204843?apikey=euAOzlo4f6QvNgEBzf4dMhLN7cQNTiow&details=true&metric=true`
+      )
+    ).data;
 
-  const SUNRISE_OFFSET = 1;
-  const SLEEP_OFFSET = -9.5;
-  const PRETEND_OFFSET = SLEEP_OFFSET - 0.5;
+    const SUNRISE_OFFSET = 1;
+    const SLEEP_OFFSET = -9.5;
+    const PRETEND_OFFSET = SLEEP_OFFSET - 0.5;
 
-  const message = `Wake up at ${moment
-    .tz(
-      sunriseResponse.data.DailyForecasts[1].Sun.EpochRise * 1000,
-      "Asia/Kolkata"
-    )
-    .add(SUNRISE_OFFSET, "hours")
-    .format("HH:mm")}
+    const message = `Wake up at ${moment
+      .tz(
+        sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
+        "Asia/Kolkata"
+      )
+      .add(SUNRISE_OFFSET, "hours")
+      .format("HH:mm")}
     \nSleep at ${moment
       .tz(
-        sunriseResponse.data.DailyForecasts[1].Sun.EpochRise * 1000,
+        sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
         "Asia/Kolkata"
       )
       .add(SUNRISE_OFFSET, "hours")
@@ -48,7 +47,7 @@ export const sunriseFunction = async (
       .format("HH:mm")}   
     \nPretend to sleep at ${moment
       .tz(
-        sunriseResponse.data.DailyForecasts[1].Sun.EpochRise * 1000,
+        sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
         "Asia/Kolkata"
       )
       .add(SUNRISE_OFFSET, "hours")
@@ -56,7 +55,7 @@ export const sunriseFunction = async (
       .format("HH:mm")}
     \nStop screens at ${moment
       .tz(
-        sunriseResponse.data.DailyForecasts[1].Sun.EpochRise * 1000,
+        sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
         "Asia/Kolkata"
       )
       .add(SUNRISE_OFFSET, "hours")
@@ -64,32 +63,33 @@ export const sunriseFunction = async (
       .format("HH:mm")}
     \nStop Coding at ${moment
       .tz(
-        sunriseResponse.data.DailyForecasts[1].Sun.EpochRise * 1000,
+        sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
         "Asia/Kolkata"
       )
       .add(SUNRISE_OFFSET, "hours")
       .add(PRETEND_OFFSET - 2, "hours")
       .format("HH:mm")}
     \nSunset at ${moment
-      .tz(
-        sunriseResponse.data.DailyForecasts[1].Sun.EpochSet * 1000,
-        "Asia/Kolkata"
-      )
+      .tz(sunriseResponse.DailyForecasts[1].Sun.EpochSet * 1000, "Asia/Kolkata")
       .format("HH:mm")}
     \nSunrise at ${moment
       .tz(
-        sunriseResponse.data.DailyForecasts[1].Sun.EpochRise * 1000,
+        sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
         "Asia/Kolkata"
       )
       .format("HH:mm")}
     \nTemperature: ${
-      sunriseResponse.data.DailyForecasts[1].Temperature.Minimum.Value
-    } - ${sunriseResponse.data.DailyForecasts[1].Temperature.Maximum.Value} 
-    \nDay: ${sunriseResponse.data.DailyForecasts[1].Day.LongPhrase}
-    \nNight: ${sunriseResponse.data.DailyForecasts[1].Night.LongPhrase}`;
+      sunriseResponse.DailyForecasts[1].Temperature.Minimum.Value
+    } - ${sunriseResponse.DailyForecasts[1].Temperature.Maximum.Value} 
+    \nDay: ${sunriseResponse.DailyForecasts[1].Day.LongPhrase}
+    \nNight: ${sunriseResponse.DailyForecasts[1].Night.LongPhrase}`;
 
-  for (const id of ids) {
-    bot.telegram.sendMessage(id, message);
+    for (const id of ids) {
+      bot.telegram.sendMessage(id, message);
+    }
+  } catch (error) {
+    console.error(error);
+    console.log("weather call failed");
   }
 };
 
