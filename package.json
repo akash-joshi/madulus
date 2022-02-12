@@ -1,0 +1,27 @@
+{
+  "name": "madulus",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx ts-node --transpile-only index.ts",
+    "test-hn": "npx ts-node --transpile-only .\tests\testHnMessage.ts",
+    "dev": "npx nodemon -i db.json index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@mozilla/readability": "^0.4.1",
+    "axios": "^0.25.0",
+    "cron": "^1.8.2",
+    "dotenv": "^16.0.0",
+    "jsdom": "^19.0.0",
+    "lowdb": "^1.0.0",
+    "moment": "^2.27.0",
+    "moment-timezone": "^0.5.31",
+    "reading-time": "^1.5.0",
+    "telegraf": "^3.34.1",
+    "typescript": "^4.5.5"
+  }
+}
