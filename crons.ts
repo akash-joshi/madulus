@@ -98,6 +98,7 @@ type HNApiResponse = {
 };
 
 type HNHit = {
+  objectID: string;
   title: string;
   url?: string;
 };
@@ -164,13 +165,13 @@ export const sendHn = async (
   }
 };
 
-export const callSunrise = (bot: Telegraf<ContextMessageUpdate>) => {
+export const callSunrise = (bot: Telegraf<ContextMessageUpdate>, db: any) => {
   const CronJob = require("cron").CronJob;
   const job = new CronJob(
     "30 19 * * *",
     function () {
       sunriseFunction(bot, ADMINS);
-      sendHn(bot, [...ADMINS, ...OUTSIDERS]);
+      sendHn(bot, [...ADMINS, ...OUTSIDERS, ...db.get("subscribers").value()]);
     },
     null,
     true,

@@ -1,19 +1,11 @@
-require('dotenv').config();
+require("dotenv").config();
 import Telegraf from "telegraf";
 
-import {
-  ADMINS,
-  callSunrise,
-  OUTSIDERS,
-  sendHn,
-  sunriseFunction,
-} from "./crons";
+import { ADMINS, callSunrise, sendHn, sunriseFunction } from "./crons";
 
 const token = process.env.BOT_TOKEN;
 
 const bot = new Telegraf(token);
-
-callSunrise(bot);
 
 const low = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
@@ -21,7 +13,9 @@ const FileSync = require("lowdb/adapters/FileSync");
 const adapter = new FileSync("db.json");
 const db = low(adapter);
 
-db.defaults({ commands: {}, tasks: {} }).write();
+db.defaults({ commands: {}, tasks: {}, subscribers: [] }).write();
+
+callSunrise(bot, db);
 
 bot.command("start", (ctx) => {
   ctx.reply(`Hello ${ctx.from.first_name}`);
@@ -53,23 +47,41 @@ bot.command("ls", (ctx) => {
   );
 });
 
+bot.command("subscribe", (ctx) => {
+  const fromId = ctx.from.id;
+
+  ctx.reply("Subscribed to HN Updates.");
+
+  const subscribers = db.get("subscribers").value();
+
+  if (!subscribers.includes(fromId)) {
+    db.set("subscribers", [...subscribers, fromId]).write();
+  }
+});
+
+bot.command("unsubscribe", (ctx) => {
+  const fromId = ctx.from.id;
+
+  ctx.reply("Unsubscribing you.");
+
+  const subscribers = db.get("subscribers").value();
+
+  db.set(
+    "subscribers",
+    subscribers.filter((id) => id !== fromId)
+  ).write();
+});
+
 bot.command("runcron", (ctx) => {
   const fromId = ctx.from.id;
 
+  ctx.reply("Cron running.");
+
   if (ADMINS.some((id) => id === fromId)) {
     sunriseFunction(bot, [fromId]);
-    sendHn(bot, [fromId]);
-
-    ctx.reply("Cron running.");
-  } else {
-    if (OUTSIDERS.some((id) => id === fromId)) {
-      sendHn(bot, [fromId]);
-
-      ctx.reply("Cron running.");
-    } else {
-      ctx.reply("Not an admin.");
-    }
   }
+
+  sendHn(bot, [fromId]);
 });
 
 bot.command("add", (ctx) => {
@@ -90,10 +102,7 @@ bot.command("done", (ctx) => {
   const tasks = db.has(`tasks.${fromId}`).value()
     ? db.get(`tasks.${fromId}`).value()
     : [];
-  db.set(
-    `tasks.${fromId}`,
-    tasks.filter((task, innerIndex) => innerIndex != 0)
-  ).write();
+  db.set(`tasks.${fromId}`, tasks.slice(1, tasks.length)).write();
   ctx.reply("Task Done.");
 });
 

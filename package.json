@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npx ts-node --transpile-only index.ts",
     "test-hn": "npx ts-node --transpile-only .\tests\testHnMessage.ts",
-    "dev": "npx nodemon -i db.json index.js"
+    "dev": "npx ts-node-dev --transpile-only index.ts"
   },
   "keywords": [],
   "author": "",
