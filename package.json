@@ -18,7 +18,7 @@
     "dotenv": "^16.0.0",
     "jsdom": "^19.0.0",
     "lowdb": "^1.0.0",
-    "moment": "^2.27.0",
+    "moment": "^2.29.2",
     "moment-timezone": "^0.5.31",
     "reading-time": "^1.5.0",
     "telegraf": "^3.34.1",
