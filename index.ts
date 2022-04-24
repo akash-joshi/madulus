@@ -1,5 +1,5 @@
 require("dotenv").config();
-import Telegraf from "telegraf";
+import { Telegraf } from "telegraf";
 
 import { ADMINS, callSunrise, sendHn, sunriseFunction } from "./crons";
 
@@ -17,59 +17,55 @@ db.defaults({ commands: {}, tasks: {}, subscribers: [] }).write();
 
 callSunrise(bot, db);
 
-bot.command("start", (ctx) => {
-  ctx.reply(`Hello ${ctx.from.first_name}`);
-});
+const botCommands: {
+  command: string;
+  description: string;
+  callback: Parameters<typeof bot.command>[1];
+}[] = [];
 
 bot.use((ctx, next) => {
-  if (ctx.message && ctx.message.text) {
-    var regex = new RegExp("@" + bot.options.username.toLowerCase(), "i");
+  if (ctx.message && "text" in ctx.message) {
+    var regex = new RegExp("@" + bot.botInfo.username.toLowerCase(), "i");
     ctx.message.text = ctx.message.text.replace(regex, "");
   }
   return next();
 });
 
-bot.command("ls", (ctx) => {
-  const groupId = ctx.message.chat.id;
-  const fromId = ctx.message.from.id;
-  const commands1 = db.get(`commands.${groupId}`).value();
-  const commands2 = db.get(`commands.${fromId}`).value();
-  if (
-    !db.has(`commands.${groupId}`).value() &&
-    !db.has(`commands.${fromId}`).value()
-  ) {
-    return ctx.reply("No commands added. Yet !");
-  }
-  ctx.reply(
-    `Group commands are :\n${
-      commands1 ? Object.keys(commands1) : ""
-    }\n\nPersonal commands are :\n${commands2 ? Object.keys(commands2) : ""}`
-  );
+bot.command("start", (ctx) => {
+  ctx.reply(`Hello ${ctx.from.first_name}`);
 });
 
-bot.command("subscribe", (ctx) => {
-  const fromId = ctx.from.id;
+botCommands.push({
+  command: "subscribe",
+  description: "subscribe to HackerNews updates",
+  callback: (ctx) => {
+    const fromId = ctx.from.id;
 
-  ctx.reply("Subscribed to HN Updates.");
+    ctx.reply("Subscribed to HN Updates.");
 
-  const subscribers = db.get("subscribers").value();
+    const subscribers = db.get("subscribers").value();
 
-  if (!subscribers.includes(fromId)) {
-    db.set("subscribers", [...subscribers, fromId]).write();
-  }
+    if (!subscribers.includes(fromId)) {
+      db.set("subscribers", [...subscribers, fromId]).write();
+    }
+  },
 });
 
-bot.command("unsubscribe", (ctx) => {
-  const fromId = ctx.from.id;
+botCommands.push({
+  command: "unsubscribe",
+  description: "unsubscribe from HackerNews updates",
+  callback: (ctx) => {
+    const fromId = ctx.from.id;
 
-  ctx.reply("Unsubscribing you.");
+    ctx.reply("Unsubscribing you.");
 
-  const subscribers = db.get("subscribers").value();
+    const subscribers = db.get("subscribers").value();
 
-  db.set(
-    "subscribers",
-    subscribers.filter((id) => id !== fromId)
-  ).write();
+    db.set(
+      "subscribers",
+      subscribers.filter((id) => id !== fromId)
+    ).write();
+  },
 });
 
 bot.command("runcron", (ctx) => {
@@ -81,124 +77,176 @@ bot.command("runcron", (ctx) => {
     sunriseFunction(bot, [fromId]);
   }
 
-  sendHn(bot, [fromId]);
+  sendHn(bot, [fromId], ADMINS);
 });
 
-bot.command("add", (ctx) => {
-  const groupId = ctx.message.chat.id;
-  const command = ctx.message.text.split(" ")[1];
-  const reply = ctx.message.text.split("\\")[1];
-  if (!command || !reply) {
-    return ctx.reply(
-      `Missing Command or Reply in Query. Add commands as \`/add command_name \\ command_text \` `
+botCommands.push({
+  command: "add",
+  description: "add a custom command to the bot",
+  callback: (ctx) => {
+    const groupId = ctx.message.chat.id;
+    const command = ctx.message.text.split(" ")[1];
+    const reply = ctx.message.text.split("\\")[1];
+    if (!command || !reply) {
+      return ctx.reply(
+        `Missing Command or Reply in Query. Add commands as \`/add command_name \\ command_text \` `
+      );
+    }
+    db.set(`commands.${groupId}.${command}`, reply).write();
+    ctx.reply(`Added /${command}`);
+  },
+});
+
+botCommands.push({
+  command: "remove",
+  description: "removes a stored custom command",
+  callback: (ctx) => {
+    const groupId = ctx.message.chat.id;
+    const command = ctx.message.text.split(" ")[1];
+    if (!command) {
+      return ctx.reply(
+        "Missing Command in Query. Remove commands as `/remove command_name`"
+      );
+    }
+    db.unset(`commands.${groupId}.${ctx.message.text.split(" ")[1]}`).write();
+    ctx.reply(`Removed /${ctx.message.text.split(" ")[1]}`);
+  },
+});
+
+botCommands.push({
+  command: "ls",
+  description: "list all commands registered with the bot",
+  callback: (ctx) => {
+    const groupId = ctx.message.chat.id;
+    const fromId = ctx.message.from.id;
+    const commands1 = db.get(`commands.${groupId}`).value();
+    const commands2 = db.get(`commands.${fromId}`).value();
+    if (
+      !db.has(`commands.${groupId}`).value() &&
+      !db.has(`commands.${fromId}`).value()
+    ) {
+      return ctx.reply("No commands added. Yet !");
+    }
+    ctx.reply(
+      `Group commands are :\n${
+        commands1 ? Object.keys(commands1) : ""
+      }\n\nPersonal commands are :\n${commands2 ? Object.keys(commands2) : ""}`
     );
-  }
-  db.set(`commands.${groupId}.${command}`, reply).write();
-  ctx.reply(`Added /${command}`);
+  },
 });
 
-bot.command("done", (ctx) => {
-  const fromId = ctx.message.from.id;
-  const tasks = db.has(`tasks.${fromId}`).value()
-    ? db.get(`tasks.${fromId}`).value()
-    : [];
-  db.set(`tasks.${fromId}`, tasks.slice(1, tasks.length)).write();
-  ctx.reply("Task Done.");
+botCommands.push({
+  command: "todo",
+  description: "add a todo to the bot",
+  callback: (ctx) => {
+    const fromId = ctx.message.from.id;
+    const task = ctx.message.text.split("/todo")[1];
+    if (task) {
+      const tasks = db.has(`tasks.${fromId}`).value()
+        ? [task, ...db.get(`tasks.${fromId}`).value()]
+        : [task];
+      db.set(`tasks.${fromId}`, tasks).write();
+    }
+    ctx.reply(`Task Added.`);
+  },
 });
 
-bot.command("todo", (ctx) => {
-  const fromId = ctx.message.from.id;
-  const task = ctx.message.text.split("/todo")[1];
-  if (task) {
+botCommands.push({
+  command: "done",
+  description: "mark a todo as done",
+  callback: (ctx) => {
+    const fromId = ctx.message.from.id;
     const tasks = db.has(`tasks.${fromId}`).value()
-      ? [task, ...db.get(`tasks.${fromId}`).value()]
-      : [task];
-    db.set(`tasks.${fromId}`, tasks).write();
-  }
-  ctx.reply(`Task Added.`);
+      ? db.get(`tasks.${fromId}`).value()
+      : [];
+    db.set(`tasks.${fromId}`, tasks.slice(1, tasks.length)).write();
+    ctx.reply("Task Done.");
+  },
 });
 
-bot.command("lstasks", (ctx) => {
-  const fromId = ctx.message.from.id;
-  const dbHasTasks = db.has(`tasks.${fromId}`).value();
+botCommands.push({
+  command: "lstasks",
+  description: "list all of the tasks that you've added",
+  callback: (ctx) => {
+    const fromId = ctx.message.from.id;
+    const dbHasTasks = db.has(`tasks.${fromId}`).value();
 
-  if (dbHasTasks) {
-    const tasks = db.get(`tasks.${fromId}`).value();
+    if (dbHasTasks) {
+      const tasks = db.get(`tasks.${fromId}`).value();
 
-    const returnString =
-      tasks.length === 0
-        ? `No tasks found`
-        : tasks.map((task, index) => `${index}. ${task}`).join("\n");
+      const returnString =
+        tasks.length === 0
+          ? `No tasks found`
+          : tasks.map((task, index) => `${index}. ${task}`).join("\n");
 
-    return ctx.reply(returnString);
-  }
+      return ctx.reply(returnString);
+    }
 
-  return ctx.reply("No tasks found");
+    return ctx.reply("No tasks found");
+  },
 });
 
-bot.command("rmtask", (ctx) => {
-  const fromId = ctx.message.from.id;
-  const index = ctx.message.text.split(" ")[1];
-  const tasks = db.has(`tasks.${fromId}`).value()
-    ? db.get(`tasks.${fromId}`).value()
-    : [];
-  db.set(
-    `tasks.${fromId}`,
-    tasks.filter((task, innerIndex) => innerIndex != index)
-  ).write();
-  ctx.reply("Task Removed.");
+botCommands.push({
+  command: "rmtask",
+  description: "remove a task from the list without marking it as done",
+  callback: (ctx) => {
+    const fromId = ctx.message.from.id;
+    const index = ctx.message.text.split(" ")[1];
+    const tasks = db.has(`tasks.${fromId}`).value()
+      ? db.get(`tasks.${fromId}`).value()
+      : [];
+    db.set(
+      `tasks.${fromId}`,
+      tasks.filter((task, innerIndex) => innerIndex != index)
+    ).write();
+    ctx.reply("Task Removed.");
+  },
 });
 
-bot.command("remove", (ctx) => {
-  const groupId = ctx.message.chat.id;
-  const command = ctx.message.text.split(" ")[1];
-  if (!command) {
-    return ctx.reply(
-      "Missing Command in Query. Remove commands as `/remove command_name`"
-    );
-  }
-  db.unset(`commands.${groupId}.${ctx.message.text.split(" ")[1]}`).write();
-  ctx.reply(`Removed /${ctx.message.text.split(" ")[1]}`);
-});
+botCommands.push({
+  command: "equals",
+  description: "experimental calculator command",
+  callback: (ctx) => {
+    const signs = ["+", "-", "*", "/"];
+    for (let sign in signs) {
+      if (ctx.message.text.split(sign)[1]) {
+        const command = ctx.message.text.split(" ")[1];
+        const left: string = command.split(sign)[0]
+          ? command.split(sign)[0].trim()
+          : "0";
+        const right: string = command.split(sign)[1]
+          ? command.split(sign)[1].trim()
+          : "0";
 
-bot.command("equals", (ctx) => {
-  const signs = ["+", "-", "*", "/"];
-  for (let sign in signs) {
-    if (ctx.message.text.split(sign)[1]) {
-      const command = ctx.message.text.split(" ")[1];
-      const left: string = command.split(sign)[0]
-        ? command.split(sign)[0].trim()
-        : "0";
-      const right: string = command.split(sign)[1]
-        ? command.split(sign)[1].trim()
-        : "0";
-
-      if (sign === "+") {
-        ctx.reply(`${parseInt(left) + parseInt(right)}`);
-        break;
-      } else if (sign === "-") {
-        ctx.reply(`${parseInt(left) - parseInt(right)}`);
-        break;
-      } else if (sign === "*") {
-        ctx.reply(`${parseInt(left) * parseInt(right)}`);
-        break;
-      } else if (sign === "/") {
-        ctx.reply(`${parseInt(left) / parseInt(right)}`);
-        break;
+        if (sign === "+") {
+          ctx.reply(`${parseInt(left) + parseInt(right)}`);
+          break;
+        } else if (sign === "-") {
+          ctx.reply(`${parseInt(left) - parseInt(right)}`);
+          break;
+        } else if (sign === "*") {
+          ctx.reply(`${parseInt(left) * parseInt(right)}`);
+          break;
+        } else if (sign === "/") {
+          ctx.reply(`${parseInt(left) / parseInt(right)}`);
+          break;
+        }
       }
     }
-  }
+  },
+});
+
+bot.command("analytics", (ctx) => {
+  ctx.reply(`We have:\n${db.get("subscribers").value().length}`);
 });
 
 bot.on("message", (ctx) => {
   const groupId = ctx.message.chat.id;
   const fromId = ctx.message.from.id;
 
-  const command = ctx.message.text
-    ? ctx.message.text.split(" ")[0].split("/")[1]
-    : "";
+  if ("text" in ctx.message) {
+    const command = ctx.message.text.split(" ")[0].split("/")[1];
 
-  if (command !== "") {
     if (db.has(`commands.${groupId}.${command}`).value()) {
       const reply = db.get(`commands.${groupId}.${command}`).value();
       ctx.reply(`${reply}`);
@@ -209,6 +257,19 @@ bot.on("message", (ctx) => {
   }
 });
 
+// call all botCommands with bot.command
+for (const botCommand of botCommands) {
+  bot.command(botCommand.command, botCommand.callback);
+}
+
+// setMyCommands to botCommands
+bot.telegram.setMyCommands(
+  botCommands.map(({ command, description }) => ({
+    command,
+    description,
+  }))
+);
+
 bot.launch();
 
-console.log("Bot started");
+console.info("Bot started");

@@ -20,8 +20,11 @@
     "lowdb": "^1.0.0",
     "moment": "^2.27.0",
     "moment-timezone": "^0.5.31",
-    "reading-time": "^1.5.0",
-    "telegraf": "^3.34.1",
+    "reading-time-estimator": "^1.5.0",
+    "telegraf": "^4.7.0",
     "typescript": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.25"
   }
 }
