@@ -1,9 +1,10 @@
-import Telegraf, { ContextMessageUpdate } from "telegraf";
+import { Context, Telegraf } from "telegraf";
 import { Readability } from "@mozilla/readability";
 import axios from "axios";
-import readingTime from "reading-time";
+import { readingTime } from "reading-time-estimator";
 import { JSDOM } from "jsdom";
 import { SunriseResponse } from "./types/sunriseTypes";
+import { Update } from "telegraf/typings/core/types/typegram";
 
 const moment = require("moment-timezone");
 
@@ -16,7 +17,7 @@ export const OUTSIDERS = process.env.OUTSIDERS.split(",").map((outsider) =>
 );
 
 export const sunriseFunction = async (
-  bot: Telegraf<ContextMessageUpdate>,
+  bot: Telegraf<Context<Update>>,
   ids: number[]
 ) => {
   try {
@@ -124,25 +125,22 @@ export const generateHNText = async () => {
       hit.title
     }\nhttps://news.ycombinator.com/item?id=${hit.objectID}`;
 
-    try {
-      if (hit.url) {
-        const pageHtml = await axios
-          .get(hit.url, { timeout: 4000 })
-          .then((response) => response.data);
+    if (hit.url) {
+      const pageHtml = await axios
+        .get(hit.url, { timeout: 4000 })
+        .then((response) => response.data);
 
-        const doc = new JSDOM(pageHtml, {
-          url: hit.url,
-        });
+      const doc = new JSDOM(pageHtml, {
+        url: hit.url,
+      });
 
-        const reader = new Readability(doc.window.document);
-        const article = reader.parse();
+      const reader = new Readability(doc.window.document);
+      const article = reader.parse();
 
+      if (article.textContent) {
         const length = readingTime(article.textContent).text;
-
-        returnedData = `${returnedData}\nTime to read: ${length}`;
+        returnedData = `${returnedData}\n${length}`;
       }
-    } catch (error) {
-      console.error(error);
     }
 
     hnMessages.push(returnedData);
@@ -155,23 +153,38 @@ ${hnMessages.join("\n\n")}
 };
 
 export const sendHn = async (
-  bot: Telegraf<ContextMessageUpdate>,
-  ids: number[]
+  bot: Telegraf<Context<Update>>,
+  ids: number[],
+  admins: number[]
 ) => {
-  const message = await generateHNText();
+  try {
+    const message = await generateHNText();
 
-  for (const id of ids) {
-    bot.telegram.sendMessage(id, message);
+    for (const id of ids) {
+      bot.telegram.sendMessage(id, message);
+    }
+  } catch (error) {
+    console.error(error);
+
+    for (const admin of admins) {
+      bot.telegram.sendMessage(admin, "HN cron failed:");
+
+      bot.telegram.sendMessage(admin, error);
+    }
   }
 };
 
-export const callSunrise = (bot: Telegraf<ContextMessageUpdate>, db: any) => {
+export const callSunrise = (bot: Telegraf<Context<Update>>, db: any) => {
   const CronJob = require("cron").CronJob;
   const job = new CronJob(
     "30 19 * * *",
     function () {
       sunriseFunction(bot, ADMINS);
-      sendHn(bot, [...ADMINS, ...OUTSIDERS, ...db.get("subscribers").value()]);
+      sendHn(
+        bot,
+        [...ADMINS, ...OUTSIDERS, ...db.get("subscribers").value()],
+        ADMINS
+      );
     },
     null,
     true,
