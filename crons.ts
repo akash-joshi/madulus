@@ -126,9 +126,17 @@ export const generateHNText = async () => {
     }\nhttps://news.ycombinator.com/item?id=${hit.objectID}`;
 
     if (hit.url) {
-      const pageHtml = await axios
+      const pageHtml: string | null = await axios
         .get(hit.url, { timeout: 4000 })
-        .then((response) => response.data);
+        .then((response) => response.data)
+        .catch((error) => {
+          console.error(error);
+          return null;
+        });
+
+      if(!pageHtml) {
+        continue;
+      }
 
       const doc = new JSDOM(pageHtml, {
         url: hit.url,
