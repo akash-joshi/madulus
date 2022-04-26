@@ -262,6 +262,30 @@ registerCommand({
   },
 });
 
+bot.inlineQuery(/^[\w\s'-]+$/, async (ctx) => {
+  const userQuery = ctx.update.inline_query.query;
+  const readingTime = await getReadingTime(userQuery);
+
+  const title = "Reading Time";
+
+  const description =
+    readingTime?.text ??
+    `Reading time for ${userQuery} could not be calculated. Please ensure that you've entered an absolute URL. If you have, the URL may have some restrictions set on it.`;
+
+  ctx.answerInlineQuery([
+    {
+      type: "article",
+      id: userQuery,
+      title,
+      description,
+      input_message_content: {
+        message_text: `${title}:\n${description}`,
+        parse_mode: "HTML",
+      },
+    },
+  ]);
+});
+
 bot.command("analytics", (ctx) => {
   ctx.reply(`We have:\n${db.get("subscribers").value().length}`);
 });
