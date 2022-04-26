@@ -1,11 +1,12 @@
 require("dotenv").config();
-import { Telegraf } from "telegraf";
+import { Bot } from "grammy";
 
-import { ADMINS, callSunrise, sendHn, sunriseFunction } from "./crons";
+import { ADMINS, callSunrise, sendHn, sunriseFunction } from "./src/crons";
+import { getReadingTime } from "./src/readingTime";
 
 const token = process.env.BOT_TOKEN;
 
-const bot = new Telegraf(token);
+const bot = new Bot(token);
 
 const low = require("lowdb");
 const FileSync = require("lowdb/adapters/FileSync");
@@ -17,11 +18,13 @@ db.defaults({ commands: {}, tasks: {}, subscribers: [] }).write();
 
 callSunrise(bot, db);
 
-const botCommands: {
+type BotCommand = {
   command: string;
   description: string;
   callback: Parameters<typeof bot.command>[1];
-}[] = [];
+};
+
+const botCommands: Omit<BotCommand, "callback">[] = [];
 
 bot.use((ctx, next) => {
   if (ctx.message && "text" in ctx.message) {
@@ -35,7 +38,12 @@ bot.command("start", (ctx) => {
   ctx.reply(`Hello ${ctx.from.first_name}`);
 });
 
-botCommands.push({
+const registerCommand = ({ callback, command, description }: BotCommand) => {
+  bot.command(command, callback);
+  botCommands.push({ command, description });
+};
+
+registerCommand({
   command: "subscribe",
   description: "subscribe to HackerNews updates",
   callback: (ctx) => {
@@ -51,7 +59,7 @@ botCommands.push({
   },
 });
 
-botCommands.push({
+registerCommand({
   command: "unsubscribe",
   description: "unsubscribe from HackerNews updates",
   callback: (ctx) => {
@@ -80,7 +88,7 @@ bot.command("runcron", (ctx) => {
   sendHn(bot, [fromId], ADMINS);
 });
 
-botCommands.push({
+registerCommand({
   command: "add",
   description: "add a custom command to the bot",
   callback: (ctx) => {
@@ -97,7 +105,7 @@ botCommands.push({
   },
 });
 
-botCommands.push({
+registerCommand({
   command: "remove",
   description: "removes a stored custom command",
   callback: (ctx) => {
@@ -113,7 +121,7 @@ botCommands.push({
   },
 });
 
-botCommands.push({
+registerCommand({
   command: "ls",
   description: "list all commands registered with the bot",
   callback: (ctx) => {
@@ -135,7 +143,7 @@ botCommands.push({
   },
 });
 
-botCommands.push({
+registerCommand({
   command: "todo",
   description: "add a todo to the bot",
   callback: (ctx) => {
@@ -151,7 +159,7 @@ botCommands.push({
   },
 });
 
-botCommands.push({
+registerCommand({
   command: "done",
   description: "mark a todo as done",
   callback: (ctx) => {
@@ -164,7 +172,7 @@ botCommands.push({
   },
 });
 
-botCommands.push({
+registerCommand({
   command: "lstasks",
   description: "list all of the tasks that you've added",
   callback: (ctx) => {
@@ -186,7 +194,7 @@ botCommands.push({
   },
 });
 
-botCommands.push({
+registerCommand({
   command: "rmtask",
   description: "remove a task from the list without marking it as done",
   callback: (ctx) => {
@@ -197,13 +205,13 @@ botCommands.push({
       : [];
     db.set(
       `tasks.${fromId}`,
-      tasks.filter((task, innerIndex) => innerIndex != index)
+      tasks.filter((_task, innerIndex) => innerIndex != index)
     ).write();
     ctx.reply("Task Removed.");
   },
 });
 
-botCommands.push({
+registerCommand({
   command: "equals",
   description: "experimental calculator command",
   callback: (ctx) => {
@@ -236,6 +244,24 @@ botCommands.push({
   },
 });
 
+registerCommand({
+  command: "caniread",
+  description: "display reading statistics for an article",
+  callback: async (ctx) => {
+    const url = ctx.message.text.split("/caniread")[1].trim();
+
+    const readingTime = await getReadingTime(url);
+
+    if (!readingTime) {
+      return ctx.reply(
+        `Reading time for ${url} could not be calculated. Please ensure that you've entered an absolute URL. If you have, the URL may have some restrictions set on it.`
+      );
+    }
+
+    ctx.reply(`Reading time for ${url}:\n${readingTime.text}`);
+  },
+});
+
 bot.command("analytics", (ctx) => {
   ctx.reply(`We have:\n${db.get("subscribers").value().length}`);
 });
@@ -249,27 +275,23 @@ bot.on("message", (ctx) => {
 
     if (db.has(`commands.${groupId}.${command}`).value()) {
       const reply = db.get(`commands.${groupId}.${command}`).value();
-      ctx.reply(`${reply}`);
+      ctx.reply(reply);
     } else if (db.has(`commands.${fromId}.${command}`).value()) {
       const reply = db.get(`commands.${fromId}.${command}`).value();
-      ctx.reply(`${reply}`);
+      ctx.reply(reply);
     }
   }
 });
 
-// call all botCommands with bot.command
-for (const botCommand of botCommands) {
-  bot.command(botCommand.command, botCommand.callback);
-}
-
 // setMyCommands to botCommands
-bot.telegram.setMyCommands(
+// @todo only set on prod
+bot.api.setMyCommands(
   botCommands.map(({ command, description }) => ({
     command,
     description,
   }))
 );
 
-bot.launch();
+bot.start();
 
 console.info("Bot started");
