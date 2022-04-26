@@ -1,4 +1,5 @@
 require("dotenv").config();
+import { createHash } from "crypto";
 import { Bot } from "grammy";
 
 import { ADMINS, callSunrise, sendHn, sunriseFunction } from "./src/crons";
@@ -260,6 +261,36 @@ registerCommand({
 
     ctx.reply(`Reading time for ${url}:\n${readingTime.text}`);
   },
+});
+
+bot.inlineQuery(/https?.+/, async (ctx) => {
+  const userQuery = ctx.update.inline_query.query;
+
+  const readingTime = userQuery.trim()
+    ? await getReadingTime(userQuery.trim())
+    : null;
+
+  const title = "Reading Time";
+
+  const description =
+    readingTime?.text ??
+    `Reading time for ${userQuery} could not be calculated. Please ensure that you've entered an absolute URL. If you have, the URL may have some restrictions set on it.`;
+
+  ctx.answerInlineQuery([
+    {
+      type: "article",
+      id:
+        `caniread-${createHash("md5")
+          .update(userQuery.trim())
+          .digest("hex")}` ?? "empty",
+      title,
+      description,
+      input_message_content: {
+        message_text: `Article: ${userQuery}\n${title}: ${description}`,
+        parse_mode: "HTML",
+      },
+    },
+  ]);
 });
 
 bot.command("analytics", (ctx) => {
