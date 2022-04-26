@@ -1,4 +1,5 @@
 require("dotenv").config();
+import { createHash } from "crypto";
 import { Bot } from "grammy";
 
 import { ADMINS, callSunrise, sendHn, sunriseFunction } from "./src/crons";
@@ -262,9 +263,12 @@ registerCommand({
   },
 });
 
-bot.inlineQuery(/^[\w\s'-]+$/, async (ctx) => {
+bot.inlineQuery(/https?.+/, async (ctx) => {
   const userQuery = ctx.update.inline_query.query;
-  const readingTime = await getReadingTime(userQuery);
+
+  const readingTime = userQuery.trim()
+    ? await getReadingTime(userQuery.trim())
+    : null;
 
   const title = "Reading Time";
 
@@ -275,11 +279,14 @@ bot.inlineQuery(/^[\w\s'-]+$/, async (ctx) => {
   ctx.answerInlineQuery([
     {
       type: "article",
-      id: userQuery,
+      id:
+        `caniread-${createHash("md5")
+          .update(userQuery.trim())
+          .digest("hex")}` ?? "empty",
       title,
       description,
       input_message_content: {
-        message_text: `${title}:\n${description}`,
+        message_text: `Article: ${userQuery}\n${title}: ${description}`,
         parse_mode: "HTML",
       },
     },
