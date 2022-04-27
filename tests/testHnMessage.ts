@@ -1,4 +1,4 @@
-import { generateHNText } from "../crons";
+import { generateHNText } from "../src/crons";
 
 const main = async () => {
   console.log(await generateHNText());

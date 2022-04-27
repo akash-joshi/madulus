@@ -23,7 +23,11 @@ export const getReadingTime = async (
   });
 
   const reader = new Readability(doc.window.document);
-  const article = reader.parse();
+  const article: string | null = reader.parse()?.textContent ?? null;
 
-  return readingTime(article.textContent);
+  if (!article) {
+    return null;
+  }
+
+  return readingTime(article);
 };
