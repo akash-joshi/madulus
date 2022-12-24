@@ -165,7 +165,7 @@ export const sendHn = async (
 export const callSunrise = (bot: Bot<Context, Api<RawApi>>, db: any) => {
   const CronJob = require("cron").CronJob;
   const job = new CronJob(
-    "30 19 * * *",
+    "30 18 * * *",
     function () {
       sunriseFunction(bot, ADMINS);
       sendHn(
