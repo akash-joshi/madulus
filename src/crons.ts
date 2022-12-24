@@ -21,7 +21,7 @@ export const sunriseFunction = async (
   try {
     const sunriseResponse = (
       await axios.get<SunriseResponse>(
-        `http://dataservice.accuweather.com/forecasts/v1/daily/5day/204843?apikey=euAOzlo4f6QvNgEBzf4dMhLN7cQNTiow&details=true&metric=true`
+        `http://dataservice.accuweather.com/forecasts/v1/daily/5day/328328?apikey=euAOzlo4f6QvNgEBzf4dMhLN7cQNTiow&details=true&metric=true`
       )
     ).data;
 
@@ -32,14 +32,14 @@ export const sunriseFunction = async (
     const message = `Wake up at ${moment
       .tz(
         sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
-        "Asia/Kolkata"
+        "Europe/London"
       )
       .add(SUNRISE_OFFSET, "hours")
       .format("HH:mm")}
     \nSleep at ${moment
       .tz(
         sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
-        "Asia/Kolkata"
+        "Europe/London"
       )
       .add(SUNRISE_OFFSET, "hours")
       .add(SLEEP_OFFSET, "hours")
@@ -47,7 +47,7 @@ export const sunriseFunction = async (
     \nPretend to sleep at ${moment
       .tz(
         sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
-        "Asia/Kolkata"
+        "Europe/London"
       )
       .add(SUNRISE_OFFSET, "hours")
       .add(PRETEND_OFFSET, "hours")
@@ -55,7 +55,7 @@ export const sunriseFunction = async (
     \nStop screens at ${moment
       .tz(
         sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
-        "Asia/Kolkata"
+        "Europe/London"
       )
       .add(SUNRISE_OFFSET, "hours")
       .add(PRETEND_OFFSET - 1, "hours")
@@ -63,18 +63,18 @@ export const sunriseFunction = async (
     \nStop Coding at ${moment
       .tz(
         sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
-        "Asia/Kolkata"
+        "Europe/London"
       )
       .add(SUNRISE_OFFSET, "hours")
       .add(PRETEND_OFFSET - 2, "hours")
       .format("HH:mm")}
     \nSunset at ${moment
-      .tz(sunriseResponse.DailyForecasts[1].Sun.EpochSet * 1000, "Asia/Kolkata")
+      .tz(sunriseResponse.DailyForecasts[1].Sun.EpochSet * 1000, "Europe/London")
       .format("HH:mm")}
     \nSunrise at ${moment
       .tz(
         sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000,
-        "Asia/Kolkata"
+        "Europe/London"
       )
       .format("HH:mm")}
     \nTemperature: ${
@@ -114,7 +114,7 @@ export const generateHNText = async () => {
 
   const relevantArticles = (hnResponse.data as HNApiResponse).hits.slice(0, 6);
 
-  const hnMessages = [];
+  const hnMessages: Array<string> = [];
 
   for (const hitIndex in relevantArticles) {
     const hit = relevantArticles[hitIndex];
@@ -176,7 +176,7 @@ export const callSunrise = (bot: Bot<Context, Api<RawApi>>, db: any) => {
     },
     null,
     true,
-    "Asia/Kolkata"
+    "Europe/London"
   );
   job.start();
 };
