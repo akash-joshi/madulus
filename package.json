@@ -19,7 +19,7 @@
     "grammy": "^1.8.0",
     "jsdom": "^19.0.0",
     "lowdb": "^1.0.0",
-    "moment": "^2.29.2",
+    "moment": "^2.29.4",
     "moment-timezone": "^0.5.35",
     "reading-time-estimator": "^1.5.0",
     "typescript": "^4.5.5"
