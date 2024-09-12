@@ -41,6 +41,9 @@ binding = "DB" # i.e. available in your Worker on env.DB
 database_name = "madulus"
 database_id = "80828363-f5ba-41be-b338-315227d03fa7"
 
+[triggers]
+crons = ["30 18 * * *"]
+
 # Bind a dispatch namespace. Use Workers for Platforms to deploy serverless functions programmatically on behalf of your customers.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#dispatch-namespace-bindings-workers-for-platforms
 # [[dispatch_namespaces]]

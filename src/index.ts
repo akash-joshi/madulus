@@ -10,6 +10,7 @@
 
 import { Context, webhookCallback } from "grammy";
 import { createTelegramBot } from "./bot.js";
+import { cron } from "./logic.js";
 
 export interface Env {
   // Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
@@ -40,5 +41,10 @@ export default {
     const bot = createTelegramBot(env.BOT_TOKEN, { botInfo: JSON.parse(env.BOT_INFO) }, env.DB);
 
     return webhookCallback(bot, "cloudflare-mod")(request);
+  },
+
+  async scheduled(event, env: Env, ctx) {
+    const bot = createTelegramBot(env.BOT_TOKEN, { botInfo: JSON.parse(env.BOT_INFO) }, env.DB);
+    ctx.waitUntil(cron(bot, env.DB));
   },
 } satisfies ExportedHandler<Env>;

@@ -114,3 +114,29 @@ export const sunriseFunction = async () => {
 		return null;
 	}
 };
+
+/**
+ * @param {import('grammy').Bot} bot
+ * @param {D1Database | undefined} db
+ */
+export const cron = async (bot, db) => {
+	const subscribers = await db.prepare('SELECT * FROM Subscribers').all();
+
+	const hnMessage = await generateHNText();
+
+	for (const subscriber of subscribers.results) {
+		await bot.api.sendMessage(subscriber.ID, hnMessage).catch((error) => {
+			console.error(error);
+		});
+	}
+
+	const sunriseMessage = await sunriseFunction();
+
+	const admins = subscribers.results.filter((subscriber) => subscriber.IS_ADMIN == 1);
+
+	for (const admin of admins) {
+		await bot.api.sendMessage(admin.ID, sunriseMessage).catch((error) => {
+			console.error(error);
+		});
+	}
+};

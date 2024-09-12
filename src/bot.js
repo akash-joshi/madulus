@@ -44,17 +44,17 @@ const createTelegramBot = (botToken, botConfig = undefined, db = undefined) => {
 	});
 
 	bot.command('pingadmins', async (ctx) => {
-		const message = await db.prepare('SELECT * FROM Subscribers WHERE IS_ADMIN=1').all();
-		const admins = message.results.map((result) => result.ID);
-		
-        await ctx.reply('Done');
-        
+		const subscribers = await db.prepare('SELECT * FROM Subscribers').all();
+		const admins = subscribers.results.filter((result) => result.IS_ADMIN === 1).map((result) => result.ID);
+
+		await ctx.reply(`Admins: ${admins.join(', ')}\nSubscribers: ${subscribers.results.map((subscriber) => subscriber.ID).join(', ')}`);
+
 		// Use Promise.all to send messages concurrently
 		for (const admin of admins) {
 			await bot.api.sendMessage(admin, 'Pong').catch((error) => {
 				console.error(`Failed to send message to admin ${admin}:`, error);
 			});
-		}	
+		}
 	});
 
 	registerCommand(bot, {
