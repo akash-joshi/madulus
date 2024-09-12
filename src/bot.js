@@ -20,8 +20,9 @@ const registerCommand = (bot, command) => {
 };
 
 /** @param {string} botToken */
-/** @param {import('grammy').BotConfig} botConfig */
-const createTelegramBot = (botToken, botConfig = undefined) => {
+/** @param {import('grammy').BotConfig | undefined} botConfig */
+/** @param {D1Database | undefined} db */
+const createTelegramBot = (botToken, botConfig = undefined, db = undefined) => {
 	const bot = new Bot(botToken, botConfig);
 
 	bot.command('start', async (ctx) => {
@@ -37,10 +38,24 @@ const createTelegramBot = (botToken, botConfig = undefined) => {
 		},
 	});
 
-    bot.command('sunrise', async (ctx) => {
-        const message = await sunriseFunction();
-        await ctx.reply(message);
-    });
+	bot.command('sunrise', async (ctx) => {
+		const message = await sunriseFunction();
+		await ctx.reply(message);
+	});
+
+	bot.command('pingadmins', async (ctx) => {
+		const message = await db.prepare('SELECT * FROM Subscribers WHERE IS_ADMIN=1').all();
+		const admins = message.results.map((result) => result.ID);
+		
+        await ctx.reply('Done');
+        
+		// Use Promise.all to send messages concurrently
+		for (const admin of admins) {
+			await bot.api.sendMessage(admin, 'Pong').catch((error) => {
+				console.error(`Failed to send message to admin ${admin}:`, error);
+			});
+		}	
+	});
 
 	registerCommand(bot, {
 		command: 'caniread',

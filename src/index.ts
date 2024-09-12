@@ -28,6 +28,7 @@ export interface Env {
   // MY_QUEUE: Queue;
   BOT_INFO: string;
   BOT_TOKEN: string;
+  DB: D1Database;
 }
 
 export default {
@@ -36,7 +37,7 @@ export default {
     env: Env,
     ctx: ExecutionContext,
   ): Promise<Response> {
-    const bot = createTelegramBot(env.BOT_TOKEN, { botInfo: JSON.parse(env.BOT_INFO) });
+    const bot = createTelegramBot(env.BOT_TOKEN, { botInfo: JSON.parse(env.BOT_INFO) }, env.DB);
 
     return webhookCallback(bot, "cloudflare-mod")(request);
   },
