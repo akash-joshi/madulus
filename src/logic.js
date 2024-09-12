@@ -1,3 +1,10 @@
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
+import timezone from 'dayjs/plugin/timezone.js';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 /** @param {string} url */
 export async function getReadingTime(url) {
 	try {
@@ -56,4 +63,54 @@ export const generateHNText = async () => {
 	return `
     Today's top HN stories were:\n${hnMessages.join('\n\n')}
     `;
+};
+
+export const sunriseFunction = async () => {
+	try {
+		const response = await fetch(
+			'http://dataservice.accuweather.com/forecasts/v1/daily/5day/328328?apikey=euAOzlo4f6QvNgEBzf4dMhLN7cQNTiow&details=true&metric=true'
+		);
+		const sunriseResponse = await response.json();
+
+		const SUNRISE_OFFSET = 1;
+		const SLEEP_OFFSET = -9.5;
+		const PRETEND_OFFSET = SLEEP_OFFSET - 0.5;
+
+		const message = `Wake up at ${dayjs(sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000)
+			.tz('Europe/London')
+			.add(SUNRISE_OFFSET, 'hour')
+			.format('HH:mm')}
+      \nSleep at ${dayjs(sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000)
+				.tz('Europe/London')
+				.add(SUNRISE_OFFSET, 'hour')
+				.add(SLEEP_OFFSET, 'hour')
+				.format('HH:mm')}   
+      \nPretend to sleep at ${dayjs(sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000)
+				.tz('Europe/London')
+				.add(SUNRISE_OFFSET, 'hour')
+				.add(PRETEND_OFFSET, 'hour')
+				.format('HH:mm')}
+      \nStop screens at ${dayjs(sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000)
+				.tz('Europe/London')
+				.add(SUNRISE_OFFSET, 'hour')
+				.add(PRETEND_OFFSET - 1, 'hour')
+				.format('HH:mm')}
+      \nStop Coding at ${dayjs(sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000)
+				.tz('Europe/London')
+				.add(SUNRISE_OFFSET, 'hour')
+				.add(PRETEND_OFFSET - 2, 'hour')
+				.format('HH:mm')}
+      \nSunset at ${dayjs(sunriseResponse.DailyForecasts[1].Sun.EpochSet * 1000).tz('Europe/London').format('HH:mm')}
+      \nSunrise at ${dayjs(sunriseResponse.DailyForecasts[1].Sun.EpochRise * 1000).tz('Europe/London').format('HH:mm')}
+      \nTemperature: ${sunriseResponse.DailyForecasts[1].Temperature.Minimum.Value} - ${
+			sunriseResponse.DailyForecasts[1].Temperature.Maximum.Value
+		} 
+      \nDay: ${sunriseResponse.DailyForecasts[1].Day.LongPhrase}
+      \nNight: ${sunriseResponse.DailyForecasts[1].Night.LongPhrase}`;
+
+		return message;
+	} catch (error) {
+		console.error(error);
+		return null;
+	}
 };

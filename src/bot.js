@@ -1,5 +1,5 @@
 import { Bot } from 'grammy';
-import { generateHNText, getReadingTime } from './logic.js';
+import { generateHNText, getReadingTime, sunriseFunction } from './logic.js';
 
 /**
  * @typedef {Object} BotCommand
@@ -37,9 +37,14 @@ const createTelegramBot = (botToken, botConfig = undefined) => {
 		},
 	});
 
+    bot.command('sunrise', async (ctx) => {
+        const message = await sunriseFunction();
+        await ctx.reply(message);
+    });
+
 	registerCommand(bot, {
 		command: 'caniread',
-		description: 'display reading statistics for an article',
+		description: 'Display reading statistics for an article',
 		callback: async (ctx) => {
 			const url = ctx.message.text.split('/caniread')[1].trim();
 

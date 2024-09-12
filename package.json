@@ -17,6 +17,7 @@
     "wrangler": "^3.60.3"
   },
   "dependencies": {
+    "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
     "grammy": "^1.30.0"
   },
