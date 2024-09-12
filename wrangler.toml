@@ -36,10 +36,10 @@ BOT_INFO = """{"id":7113300629,"is_bot":true,"first_name":"akash_cf_bot","userna
 
 # Bind a D1 database. D1 is Cloudflare’s native serverless SQL database.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#d1-databases
-# [[d1_databases]]
-# binding = "MY_DB"
-# database_name = "my-database"
-# database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+[[d1_databases]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "madulus"
+database_id = "80828363-f5ba-41be-b338-315227d03fa7"
 
 # Bind a dispatch namespace. Use Workers for Platforms to deploy serverless functions programmatically on behalf of your customers.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#dispatch-namespace-bindings-workers-for-platforms
