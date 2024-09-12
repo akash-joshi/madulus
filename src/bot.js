@@ -37,7 +37,7 @@ const createTelegramBot = (botToken, botConfig = undefined) => {
 		},
 	});
 
-	registerCommand({
+	registerCommand(bot, {
 		command: 'caniread',
 		description: 'display reading statistics for an article',
 		callback: async (ctx) => {

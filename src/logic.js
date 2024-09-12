@@ -1,5 +1,5 @@
 /** @param {string} url */
-async function getReadingTime(url) {
+export async function getReadingTime(url) {
 	try {
 		const response = await fetch(url, { timeout: 4000 });
 		if (!response.ok) throw new Error('Failed to fetch');
