@@ -1,3 +1,28 @@
+/** @param {string} url */
+async function getReadingTime(url) {
+	try {
+		const response = await fetch(url, { timeout: 4000 });
+		if (!response.ok) throw new Error('Failed to fetch');
+		const html = await response.text();
+
+		// Simple HTML parsing (not as robust as Readability)
+		const textContent = html
+			.replace(/<[^>]*>/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
+
+		// Simple reading time estimation
+		const wordsPerMinute = 200;
+		const wordCount = textContent.split(/\s+/).length;
+		const minutes = Math.ceil(wordCount / wordsPerMinute);
+
+		return { text: `${minutes} min read`, minutes, words: wordCount };
+	} catch (error) {
+		console.error('Error fetching reading time:', error);
+		return null;
+	}
+}
+
 export const generateHNText = async () => {
 	const currentDate = new Date();
 	currentDate.setDate(currentDate.getDate() - 1);
@@ -9,7 +34,7 @@ export const generateHNText = async () => {
 
 	const relevantArticles = hnData.hits.slice(0, 6);
 
-    /** @type {Array<string>} */
+	/** @type {Array<string>} */
 	const hnMessages = [];
 
 	for (const hitIndex in relevantArticles) {

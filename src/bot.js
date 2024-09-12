@@ -1,5 +1,5 @@
 import { Bot } from 'grammy';
-import { generateHNText } from './logic.js';
+import { generateHNText, getReadingTime } from './logic.js';
 
 /**
  * @typedef {Object} BotCommand
@@ -34,6 +34,24 @@ const createTelegramBot = (botToken, botConfig = undefined) => {
 		callback: async (ctx) => {
 			const message = await generateHNText();
 			await ctx.reply(message);
+		},
+	});
+
+	registerCommand({
+		command: 'caniread',
+		description: 'display reading statistics for an article',
+		callback: async (ctx) => {
+			const url = ctx.message.text.split('/caniread')[1].trim();
+
+			const readingTime = await getReadingTime(url);
+
+			if (!readingTime) {
+				return ctx.reply(
+					`Reading time for ${url} could not be calculated. Please ensure that you've entered an absolute URL. If you have, the URL may have some restrictions set on it.`
+				);
+			}
+
+			ctx.reply(`Reading time for ${url}:\n${readingTime.text}`);
 		},
 	});
 
