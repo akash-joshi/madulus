@@ -146,17 +146,22 @@ export const sendHn = async (
   admins: number[]
 ) => {
   try {
+    console.log("🔄 Generating HackerNews message...");
     const message = await generateHNText();
+    console.log("✅ HackerNews message generated successfully");
 
+    console.log(`📨 Sending message to ${ids.length} recipients...`);
     for (const id of ids) {
-      bot.api.sendMessage(id, message);
+      await bot.api.sendMessage(id, message);
     }
+    console.log("✅ Messages sent successfully");
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error in HackerNews cron:", error);
 
+    console.log("⚠️ Notifying admin users about the error...");
     for (const id of ids) {
       if (admins.includes(id)) {
-        bot.api.sendMessage(id, `HN cron failed:\n${error}`);
+        await bot.api.sendMessage(id, `HN cron failed:\n${error}`);
       }
     }
   }
