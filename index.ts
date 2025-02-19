@@ -90,61 +90,6 @@ bot.command("runcron", (ctx) => {
 });
 
 registerCommand({
-  command: "add",
-  description: "add a custom command to the bot",
-  callback: (ctx) => {
-    const groupId = ctx.message.chat.id;
-    const command = ctx.message.text.split(" ")[1];
-    const reply = ctx.message.text.split("\\")[1];
-    if (!command || !reply) {
-      return ctx.reply(
-        `Missing Command or Reply in Query. Add commands as \`/add command_name \\ command_text \` `
-      );
-    }
-    db.set(`commands.${groupId}.${command}`, reply).write();
-    ctx.reply(`Added /${command}`);
-  },
-});
-
-registerCommand({
-  command: "remove",
-  description: "removes a stored custom command",
-  callback: (ctx) => {
-    const groupId = ctx.message.chat.id;
-    const command = ctx.message.text.split(" ")[1];
-    if (!command) {
-      return ctx.reply(
-        "Missing Command in Query. Remove commands as `/remove command_name`"
-      );
-    }
-    db.unset(`commands.${groupId}.${ctx.message.text.split(" ")[1]}`).write();
-    ctx.reply(`Removed /${ctx.message.text.split(" ")[1]}`);
-  },
-});
-
-registerCommand({
-  command: "ls",
-  description: "list all commands registered with the bot",
-  callback: (ctx) => {
-    const groupId = ctx.message.chat.id;
-    const fromId = ctx.message.from.id;
-    const commands1 = db.get(`commands.${groupId}`).value();
-    const commands2 = db.get(`commands.${fromId}`).value();
-    if (
-      !db.has(`commands.${groupId}`).value() &&
-      !db.has(`commands.${fromId}`).value()
-    ) {
-      return ctx.reply("No commands added. Yet !");
-    }
-    ctx.reply(
-      `Group commands are :\n${
-        commands1 ? Object.keys(commands1) : ""
-      }\n\nPersonal commands are :\n${commands2 ? Object.keys(commands2) : ""}`
-    );
-  },
-});
-
-registerCommand({
   command: "todo",
   description: "add a todo to the bot",
   callback: (ctx) => {
@@ -209,39 +154,6 @@ registerCommand({
       tasks.filter((_task, innerIndex) => innerIndex != index)
     ).write();
     ctx.reply("Task Removed.");
-  },
-});
-
-registerCommand({
-  command: "equals",
-  description: "experimental calculator command",
-  callback: (ctx) => {
-    const signs = ["+", "-", "*", "/"];
-    for (let sign in signs) {
-      if (ctx.message.text.split(sign)[1]) {
-        const command = ctx.message.text.split(" ")[1];
-        const left: string = command.split(sign)[0]
-          ? command.split(sign)[0].trim()
-          : "0";
-        const right: string = command.split(sign)[1]
-          ? command.split(sign)[1].trim()
-          : "0";
-
-        if (sign === "+") {
-          ctx.reply(`${parseInt(left) + parseInt(right)}`);
-          break;
-        } else if (sign === "-") {
-          ctx.reply(`${parseInt(left) - parseInt(right)}`);
-          break;
-        } else if (sign === "*") {
-          ctx.reply(`${parseInt(left) * parseInt(right)}`);
-          break;
-        } else if (sign === "/") {
-          ctx.reply(`${parseInt(left) / parseInt(right)}`);
-          break;
-        }
-      }
-    }
   },
 });
 
