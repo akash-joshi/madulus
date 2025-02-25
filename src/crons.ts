@@ -6,13 +6,13 @@ const moment = require("moment-timezone");
 
 import { SunriseResponse } from "../types/sunriseTypes";
 
-export const ADMINS = process.env.ADMINS.split(",").map((admin) =>
+export const ADMINS = process.env?.ADMINS?.split(",").map((admin) =>
   parseInt(admin)
-);
+) ?? [];
 
-export const OUTSIDERS = process.env.OUTSIDERS.split(",").map((outsider) =>
+export const OUTSIDERS = process.env?.OUTSIDERS?.split(",").map((outsider) =>
   parseInt(outsider)
-);
+) ?? [];
 
 export const sunriseFunction = async (
   bot: Bot<Context, Api<RawApi>>,
@@ -103,9 +103,11 @@ type HNHit = {
 };
 
 export const generateHNText = async () => {
+  console.log("🔍 Starting HN article search...");
   const currentDate = new Date();
   currentDate.setDate(currentDate.getDate() - 1);
 
+  console.log(`📅 Fetching articles since: ${currentDate.toISOString()}`);
   const hnResponse = await axios.get(
     `https://hn.algolia.com/api/v1/search?tags=story&numericFilters=created_at_i>${
       currentDate.valueOf() / 1000
@@ -113,27 +115,34 @@ export const generateHNText = async () => {
   );
 
   const relevantArticles = (hnResponse.data as HNApiResponse).hits.slice(0, 6);
+  console.log(`📚 Found ${relevantArticles.length} relevant articles`);
 
   const hnMessages: Array<string> = [];
 
   for (const hitIndex in relevantArticles) {
     const hit = relevantArticles[hitIndex];
+    console.log(`🔗 Processing article ${parseInt(hitIndex) + 1}: ${hit.title}`);
 
     let returnedData = `${parseInt(hitIndex) + 1}. ${
       hit.title
     }\nhttps://news.ycombinator.com/item?id=${hit.objectID}`;
 
     if (hit.url) {
+      console.log(`⏱️ Getting reading time for: ${hit.url}`);
       const readingTime = await getReadingTime(hit.url);
 
       if (readingTime) {
         returnedData = `${returnedData}\nReading Time: ${readingTime.text}`;
+        console.log(`📖 Reading time: ${readingTime.text}`);
+      } else {
+        console.log(`⚠️ Could not get reading time for: ${hit.url}`);
       }
     }
 
     hnMessages.push(returnedData);
   }
 
+  console.log("✅ HN message generation complete");
   return `
   Today's top HN stories were:\n
 ${hnMessages.join("\n\n")}
@@ -150,11 +159,13 @@ export const sendHn = async (
     const message = await generateHNText();
     console.log("✅ HackerNews message generated successfully");
 
-    console.log(`📨 Sending message to ${ids.length} recipients...`);
+    console.log(`📨 Sending message to ${ids.length} recipients: ${JSON.stringify(ids)}`);
     for (const id of ids) {
+      console.log(`📤 Sending to user ID: ${id}`);
       await bot.api.sendMessage(id, message);
+      console.log(`✅ Successfully sent to user ID: ${id}`);
     }
-    console.log("✅ Messages sent successfully");
+    console.log("✅ All messages sent successfully");
   } catch (error) {
     console.error("❌ Error in HackerNews cron:", error);
 
@@ -169,13 +180,34 @@ export const sendHn = async (
 
 export const callSunrise = (bot: Bot<Context, Api<RawApi>>, db: any) => {
   const CronJob = require("cron").CronJob;
+  console.log("🕒 Setting up cron job for 18:30 Europe/London time");
+  
   const job = new CronJob(
     "30 18 * * *",
     function () {
-      sunriseFunction(bot, ADMINS);
+      console.log("⏰ Cron job triggered at:", new Date().toISOString());
+      
+      // Log subscriber information
+      const subscribers = db.get("subscribers").value();
+      console.log(`👥 Current subscribers: ${JSON.stringify(subscribers)}`);
+      console.log(`👤 ADMINS: ${JSON.stringify(ADMINS)}`);
+      console.log(`👥 OUTSIDERS: ${JSON.stringify(OUTSIDERS)}`);
+      
+      // Run sunriseFunction with error handling
+      console.log("☀️ Starting sunriseFunction...");
+      sunriseFunction(bot, ADMINS).catch(error => {
+        console.error("❌ Error in sunriseFunction:", error);
+        // Notify admins about the error
+        for (const id of ADMINS) {
+          bot.api.sendMessage(id, `Sunrise function failed:\n${error}`).catch(console.error);
+        }
+      });
+      
+      // Run sendHn independently
+      console.log("📰 Starting sendHn function...");
       sendHn(
         bot,
-        [...ADMINS, ...OUTSIDERS, ...db.get("subscribers").value()],
+        [...ADMINS, ...OUTSIDERS, ...subscribers],
         ADMINS
       );
     },
@@ -184,4 +216,5 @@ export const callSunrise = (bot: Bot<Context, Api<RawApi>>, db: any) => {
     "Europe/London"
   );
   job.start();
+  console.log("✅ Cron job started successfully");
 };

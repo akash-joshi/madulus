@@ -36,7 +36,7 @@ bot.use((ctx, next) => {
 });
 
 bot.command("start", (ctx) => {
-  ctx.reply(`Hello ${ctx.from.first_name}`);
+  ctx.reply(`Hello ${ctx.from.first_name} ${ctx.from.id}`);
 });
 
 const registerCommand = ({ callback, command, description }: BotCommand) => {
@@ -191,10 +191,9 @@ bot.inlineQuery(/https?.+/, async (ctx) => {
   ctx.answerInlineQuery([
     {
       type: "article",
-      id:
-        `caniread-${createHash("md5")
-          .update(userQuery.trim())
-          .digest("hex")}` ?? "empty",
+      id: `caniread-${createHash("md5")
+        .update(userQuery.trim())
+        .digest("hex")}`,
       title,
       description,
       input_message_content: {
