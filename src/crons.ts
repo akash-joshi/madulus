@@ -1,6 +1,8 @@
 import axios from "axios";
 import { getReadingTime } from "./readingTime";
 import { Bot, Context, Api, RawApi } from "grammy";
+import * as crypto from "crypto";
+import { JSDOM } from "jsdom";
 
 const moment = require("moment-timezone");
 
@@ -178,21 +180,92 @@ export const sendHn = async (
   }
 };
 
+export const checkCgiPageChange = async (
+  bot: Bot<Context, Api<RawApi>>,
+  db: any,
+  admins: number[]
+) => {
+  try {
+    console.log("🔍 Starting CGI Manchester page check...");
+
+    const response = await axios.get(
+      "https://www.cgimanchester.gov.in/list/MQ,,",
+      { timeout: 10000 }
+    );
+
+    console.log("📄 Page fetched successfully");
+
+    const dom = new JSDOM(response.data);
+    const document = dom.window.document;
+
+    const listingsElements = document.querySelectorAll(".commonListings");
+    console.log(`📋 Found ${listingsElements.length} commonListings elements`);
+
+    let textContent = "";
+    listingsElements.forEach((element) => {
+      textContent += element.textContent?.trim() + "\n";
+    });
+
+    if (!textContent) {
+      console.log("⚠️ No content found in commonListings elements");
+      return;
+    }
+
+    const newHash = crypto.createHash("md5").update(textContent).digest("hex");
+    console.log(`🔐 Generated hash: ${newHash}`);
+
+    const storedHash = db.get("cgiPageHash").value();
+    console.log(`📝 Stored hash: ${storedHash}`);
+
+    if (storedHash !== newHash) {
+      console.log("🆕 Page content has changed!");
+
+      const message = `🚨 CGI Manchester page has been updated!\n\nNew content:\n${textContent}\n\n[Check the page](https://www.cgimanchester.gov.in/list/MQ,,)`;
+
+      for (const id of admins) {
+        console.log(`📤 Sending notification to admin ID: ${id}`);
+        await bot.api.sendMessage(id, message, { parse_mode: "Markdown" });
+        console.log(`✅ Successfully sent to admin ID: ${id}`);
+      }
+
+      db.set("cgiPageHash", newHash).write();
+      console.log("💾 Updated stored hash in database");
+    } else {
+      console.log("✅ No changes detected");
+
+      const message = `✅ CGI Manchester page checked - no changes detected.\n\n[Check the page](https://www.cgimanchester.gov.in/list/MQ,,)`;
+
+      for (const id of admins) {
+        console.log(`📤 Sending no-change notification to admin ID: ${id}`);
+        await bot.api.sendMessage(id, message, { parse_mode: "Markdown" });
+        console.log(`✅ Successfully sent to admin ID: ${id}`);
+      }
+    }
+  } catch (error) {
+    console.error("❌ Error in CGI page check:", error);
+
+    console.log("⚠️ Notifying admin users about the error...");
+    for (const id of admins) {
+      await bot.api.sendMessage(id, `CGI page check failed:\n${error}`);
+    }
+  }
+};
+
 export const callSunrise = (bot: Bot<Context, Api<RawApi>>, db: any) => {
   const CronJob = require("cron").CronJob;
   console.log("🕒 Setting up cron job for 18:30 Europe/London time");
-  
+
   const job = new CronJob(
     "30 18 * * *",
     function () {
       console.log("⏰ Cron job triggered at:", new Date().toISOString());
-      
+
       // Log subscriber information
       const subscribers = db.get("subscribers").value();
       console.log(`👥 Current subscribers: ${JSON.stringify(subscribers)}`);
       console.log(`👤 ADMINS: ${JSON.stringify(ADMINS)}`);
       console.log(`👥 OUTSIDERS: ${JSON.stringify(OUTSIDERS)}`);
-      
+
       // Run sunriseFunction with error handling
       console.log("☀️ Starting sunriseFunction...");
       sunriseFunction(bot, ADMINS).catch(error => {
@@ -202,7 +275,7 @@ export const callSunrise = (bot: Bot<Context, Api<RawApi>>, db: any) => {
           bot.api.sendMessage(id, `Sunrise function failed:\n${error}`).catch(console.error);
         }
       });
-      
+
       // Run sendHn independently
       console.log("📰 Starting sendHn function...");
       sendHn(
@@ -217,4 +290,22 @@ export const callSunrise = (bot: Bot<Context, Api<RawApi>>, db: any) => {
   );
   job.start();
   console.log("✅ Cron job started successfully");
+};
+
+export const callCgiCheck = (bot: Bot<Context, Api<RawApi>>, db: any) => {
+  const CronJob = require("cron").CronJob;
+  console.log("🕒 Setting up CGI check cron job for 09:00 Europe/London every Friday");
+
+  const job = new CronJob(
+    "0 9 * * 5",
+    function () {
+      console.log("⏰ CGI check cron triggered at:", new Date().toISOString());
+      checkCgiPageChange(bot, db, ADMINS);
+    },
+    null,
+    true,
+    "Europe/London"
+  );
+  job.start();
+  console.log("✅ CGI check cron job started successfully");
 };
