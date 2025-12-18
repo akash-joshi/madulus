@@ -2,7 +2,7 @@ require("dotenv").config();
 import { createHash } from "crypto";
 import { Bot } from "grammy";
 
-import { ADMINS, callSunrise, callCgiCheck, sendHn, sunriseFunction, checkCgiPageChange } from "./src/crons";
+import { ADMINS, callSunrise, callFridayReminder, sendHn, sunriseFunction } from "./src/crons";
 import { getReadingTime } from "./src/readingTime";
 
 const token = process.env.BOT_TOKEN;
@@ -15,10 +15,10 @@ const FileSync = require("lowdb/adapters/FileSync");
 const adapter = new FileSync("db.json");
 const db = low(adapter);
 
-db.defaults({ commands: {}, tasks: {}, subscribers: [], cgiPageHash: null }).write();
+db.defaults({ commands: {}, tasks: {}, subscribers: [] }).write();
 
 callSunrise(bot, db);
-callCgiCheck(bot, db);
+callFridayReminder(bot);
 
 type BotCommand = {
   command: string;
@@ -86,19 +86,6 @@ bot.command("runcron", (ctx) => {
   }
 
   sendHn(bot, [fromId], ADMINS);
-});
-
-bot.command("checkcgi", (ctx) => {
-  const fromId = ctx.from.id;
-
-  console.log({fromId})
-  
-  if (ADMINS.some((id) => id === fromId)) {
-    ctx.reply("Checking CGI Manchester page...");
-    checkCgiPageChange(bot, db, [fromId]);
-  } else {
-    ctx.reply("Only admins can run this command.");
-  }
 });
 
 registerCommand({

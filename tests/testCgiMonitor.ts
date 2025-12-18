@@ -1,21 +1,13 @@
 require("dotenv").config();
 import { Bot } from "grammy";
-import { checkCgiPageChange, ADMINS } from "../src/crons";
+import { sendFridayReminder, ADMINS } from "../src/crons";
 
 const token = process.env.BOT_TOKEN;
 const bot = new Bot(token);
 
-const low = require("lowdb");
-const FileSync = require("lowdb/adapters/FileSync");
+console.log("🧪 Testing Friday reminder...\n");
 
-const adapter = new FileSync("db.json");
-const db = low(adapter);
-
-db.defaults({ commands: {}, tasks: {}, subscribers: [], cgiPageHash: null }).write();
-
-console.log("🧪 Testing CGI Manchester page monitor...\n");
-
-checkCgiPageChange(bot, db, ADMINS)
+sendFridayReminder(bot, ADMINS)
   .then(() => {
     console.log("\n✅ Test completed successfully");
     process.exit(0);
