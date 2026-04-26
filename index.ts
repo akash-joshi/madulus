@@ -85,7 +85,7 @@ bot.command("runcron", (ctx) => {
     sunriseFunction(bot, [fromId]);
   }
 
-  sendHn(bot, [fromId], ADMINS);
+  sendHn(bot, [fromId]);
 });
 
 registerCommand({

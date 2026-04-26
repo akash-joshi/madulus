@@ -157,8 +157,7 @@ ${hnMessages.join("\n\n")}
 
 export const sendHn = async (
   bot: Bot<Context, Api<RawApi>>,
-  ids: number[],
-  admins: number[]
+  ids: number[]
 ) => {
   try {
     console.log("🔄 Generating HackerNews message...");
@@ -174,13 +173,6 @@ export const sendHn = async (
     console.log("✅ All messages sent successfully");
   } catch (error) {
     console.error("❌ Error in HackerNews cron:", error);
-
-    console.log("⚠️ Notifying admin users about the error...");
-    for (const id of ids) {
-      if (admins.includes(id)) {
-        await bot.api.sendMessage(id, `HN cron failed:\n${error}`);
-      }
-    }
   }
 };
 
@@ -218,18 +210,13 @@ export const callSunrise = (bot: Bot<Context, Api<RawApi>>, db: any) => {
       console.log("☀️ Starting sunriseFunction...");
       sunriseFunction(bot, ADMINS).catch(error => {
         console.error("❌ Error in sunriseFunction:", error);
-        // Notify admins about the error
-        for (const id of ADMINS) {
-          bot.api.sendMessage(id, `Sunrise function failed:\n${error}`).catch(console.error);
-        }
       });
 
       // Run sendHn independently
       console.log("📰 Starting sendHn function...");
       sendHn(
         bot,
-        [...ADMINS, ...OUTSIDERS, ...subscribers],
-        ADMINS
+        [...ADMINS, ...OUTSIDERS, ...subscribers]
       );
     },
     null,
