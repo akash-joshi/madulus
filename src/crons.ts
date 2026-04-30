@@ -196,7 +196,7 @@ export const callSunrise = (bot: Bot<Context, Api<RawApi>>, db: any) => {
   console.log("🕒 Setting up cron job for 18:30 Europe/London time");
 
   const job = new CronJob(
-    "30 18 * * *",
+    "0 21 * * *",
     function () {
       console.log("⏰ Cron job triggered at:", new Date().toISOString());
 
