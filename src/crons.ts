@@ -227,6 +227,25 @@ export const callSunrise = (bot: Bot<Context, Api<RawApi>>, db: any) => {
   console.log("✅ Cron job started successfully");
 };
 
+export const callMorningHn = (bot: Bot<Context, Api<RawApi>>, db: any) => {
+  const CronJob = require("cron").CronJob;
+  console.log("🕒 Setting up morning HN cron job for 09:00 Europe/London");
+
+  const job = new CronJob(
+    "0 9 * * *",
+    function () {
+      console.log("⏰ Morning HN cron triggered at:", new Date().toISOString());
+      const subscribers = db.get("subscribers").value();
+      sendHn(bot, [...ADMINS, ...OUTSIDERS, ...subscribers]);
+    },
+    null,
+    true,
+    "Europe/London"
+  );
+  job.start();
+  console.log("✅ Morning HN cron job started successfully");
+};
+
 export const callFridayReminder = (bot: Bot<Context, Api<RawApi>>) => {
   const CronJob = require("cron").CronJob;
   console.log("🕒 Setting up Friday reminder cron job for 09:00 Europe/London");

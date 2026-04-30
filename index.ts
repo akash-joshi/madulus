@@ -2,7 +2,7 @@ require("dotenv").config();
 import { createHash } from "crypto";
 import { Bot } from "grammy";
 
-import { ADMINS, callSunrise, callFridayReminder, sendHn, sunriseFunction } from "./src/crons";
+import { ADMINS, callSunrise, callMorningHn, callFridayReminder, sendHn, sunriseFunction } from "./src/crons";
 import { getReadingTime } from "./src/readingTime";
 
 const token = process.env.BOT_TOKEN;
@@ -18,6 +18,7 @@ const db = low(adapter);
 db.defaults({ commands: {}, tasks: {}, subscribers: [] }).write();
 
 callSunrise(bot, db);
+callMorningHn(bot, db);
 callFridayReminder(bot);
 
 type BotCommand = {
