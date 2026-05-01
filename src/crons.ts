@@ -111,7 +111,7 @@ type HNHit = {
 export const generateHNText = async () => {
   console.log("🔍 Starting HN article search...");
   const currentDate = new Date();
-  currentDate.setDate(currentDate.getDate() - 1);
+  currentDate.setTime(currentDate.getTime() - 12 * 60 * 60 * 1000);
 
   console.log(`📅 Fetching articles since: ${currentDate.toISOString()}`);
   const hnResponse = await axios.get(
