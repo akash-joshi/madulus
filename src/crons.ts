@@ -120,7 +120,7 @@ export const generateHNText = async () => {
     }`
   );
 
-  const relevantArticles = (hnResponse.data as HNApiResponse).hits.slice(0, 6);
+  const relevantArticles = (hnResponse.data as HNApiResponse).hits.slice(0, 5);
   console.log(`📚 Found ${relevantArticles.length} relevant articles`);
 
   const hnMessages: Array<string> = [];
